@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException, Query
-from typing import Optional
+from typing import Any, Dict, List, Optional
 from motor.motor_asyncio import AsyncIOMotorClient
 from dotenv import load_dotenv
 import os
@@ -57,15 +57,8 @@ async def db_health():
 
 # Add message endpoint
 @app.post("/add_message")
-async def add_message(message: str, subject: Optional[str] = None,
-class_name: Optional[str] = None):
-    message_data = {    
-        "message": message,
-        "subject": subject,
-        "class_name": class_name,
-        "timestamp": datetime.utcnow()
-    }
-    await collection.insert_one(message_data)
+async def add_message(message: Dict[str, Any]):
+    await collection.insert_one(message)
     return {"message": "Message added successfully"}
 
 # Get all messages endpoint
@@ -73,6 +66,13 @@ class_name: Optional[str] = None):
 async def get_messages():
 # Your code to fetch all messages from MongoDB
     messages = await collection.find().to_list(length=None)
+    for msg in messages:
+        msg["_id"] = str(msg["_id"])  # Convert ObjectId to string for JSON serialization
+        """we can use messages = await collection.find(
+        {},                # no filter
+        {"_id": 0}         # projection → exclude _id
+    ).to_list(length=None)
+    if we don't want to return _id field"""
     return messages
 # Analyze messages endpoint
 @app.get("/analyze")
